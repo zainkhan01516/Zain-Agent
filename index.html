@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zain – Voice AI Companion</title>
+<style>
+:root{--bg:#050b14;--panel:#0b1626;--line:#1c3a55;--cy:#35d0ff;--gr:#3dff9a;--rd:#ff4d6d;--wh:#e8f4ff;--mu:#7f9bb5;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--wh);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.app{max-width:520px;margin:0 auto;padding:14px 14px 24px}
+.card{background:linear-gradient(160deg,#0d1d30,var(--panel));border:1px solid var(--line);border-radius:16px}
+.stage{padding:16px 12px 12px;text-align:center;overflow:hidden}
+.avatar{width:190px;height:190px;margin:0 auto}
+.avatar svg{width:100%;height:100%;overflow:visible}
+.glow{filter:blur(2px) drop-shadow(0 0 14px var(--cy));animation:float 5s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-6px)}}
+@keyframes pulse{50%{transform:scale(1.07);opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ring{transform-origin:100px 100px;opacity:.5}
+.speaking .ring{animation:pulse .6s ease-in-out infinite}
+.listening .ring{animation:pulse 1.4s ease-in-out infinite;stroke:var(--gr)}
+.thinking .ring{animation:spin 1.2s linear infinite;stroke-dasharray:20 14}
+.pill{display:inline-flex;gap:8px;align-items:center;margin-top:8px;padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:#08111d;font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mu)}
+.listening .dot{background:var(--gr)}.speaking .dot{background:var(--cy)}.thinking .dot{background:#ffc94d}
+.nodes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.node{padding:9px 4px;border-radius:10px;border:1px solid;background:#08111d;color:var(--wh);font:600 11px/1 system-ui;letter-spacing:.08em;cursor:pointer}
+.node[data-t=memory]{border-color:var(--cy)}.node[data-t=skills]{border-color:var(--gr)}.node[data-t=character]{border-color:var(--rd)}.node[data-t=settings]{border-color:#9aa9b8}
+.node.on{background:#12304a}
+.panel{padding:14px;margin-bottom:12px;display:none}.panel.show{display:block}
+.panel h3,.hub h3{margin:0 0 8px;font-size:14px;color:var(--cy);letter-spacing:.06em;text-transform:uppercase;display:flex;justify-content:space-between}
+.hub h3 small{color:var(--mu);text-transform:none;letter-spacing:0;font-weight:400}
+.panel label{display:flex;gap:8px;align-items:center;margin:6px 0}
+input[type=text],input[type=password],textarea,select{width:100%;background:#08111d;border:1px solid var(--line);border-radius:10px;color:var(--wh);padding:10px;font:inherit;margin:4px 0}
+textarea{min-height:64px;resize:vertical}
+.mem{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+.mem button{background:none;border:0;color:var(--rd);cursor:pointer}
+.hub{padding:14px;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{border:1px solid var(--line);background:#08111d;color:var(--wh);border-radius:999px;padding:7px 11px;font:12.5px system-ui;cursor:pointer}
+.hubout{min-height:150px;border:1px dashed var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;padding:6px;color:var(--mu);font-size:13px;text-align:center}
+.hubout img{width:100%;max-height:60vh;display:block}
+.chat{padding:12px;max-height:38vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.msg{padding:9px 12px;border-radius:12px;max-width:88%;white-space:pre-wrap;word-wrap:break-word}
+.msg.u{align-self:flex-end;background:#12304a}
+.msg.a{align-self:flex-start;background:#0a1f1a;border:1px solid #14503a}
+.msg.a b{display:block;font-size:11px;color:var(--gr);letter-spacing:.08em;margin-bottom:2px}
+.bar{display:flex;gap:8px;margin-top:12px;align-items:center}
+.btn{border:1px solid var(--cy);background:#0b2236;color:var(--wh);border-radius:12px;padding:0 14px;font:inherit;cursor:pointer;min-height:44px}
+.btn.rec{background:#0d3a26;border-color:var(--gr)}
+.hint{color:var(--mu);font-size:12px;margin:0}
+.center{text-align:center;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card stage" id="stage">
+    <div class="avatar"><svg viewBox="0 0 200 200" aria-hidden="true">
+      <defs><radialGradient id="g" cx="50%" cy="40%"><stop offset="0" stop-color="#bff3ff"/><stop offset=".5" stop-color="#35d0ff"/><stop offset="1" stop-color="#0a5d9c"/></radialGradient></defs>
+      <circle class="ring" cx="100" cy="100" r="92" fill="none" stroke="#35d0ff" stroke-width="2"/>
+      <g class="glow"><path d="M100 28c-26 0-42 18-42 42 0 14 5 24 2 34-4 12-20 18-24 40 30 14 90 14 128 0-4-22-22-28-28-40-4-10 4-22 4-34 0-24-16-42-40-42z" fill="url(#g)" opacity=".9"/><ellipse cx="100" cy="74" rx="22" ry="26" fill="#eaffff" opacity=".55"/></g>
+    </svg></div>
+    <div class="pill"><span class="dot"></span><span id="name">Zain</span> is <span id="state">idle</span></div>
+  </div>
+
+  <div class="nodes">
+    <button class="node" data-t="memory">MEMORY</button><button class="node" data-t="skills">SKILLS</button>
+    <button class="node" data-t="character">CHARACTER</button><button class="node" data-t="settings">SETTINGS</button>
+  </div>
+
+  <div class="card panel" id="p-memory"><h3>Memory</h3><div id="memList"></div>
+    <div class="bar"><input type="text" id="memIn" placeholder="Kuch yaad karwao…"><button class="btn" id="memAdd">Add</button></div></div>
+  <div class="card panel" id="p-skills"><h3>Skills</h3><div id="skillList"></div></div>
+  <div class="card panel" id="p-character"><h3>Character</h3>
+    <input type="text" id="cName" placeholder="Name">
+    <textarea id="cDesc" placeholder="Personality: e.g. warm, funny dost jo Roman Urdu mein baat karta hai"></textarea></div>
+  <div class="card panel" id="p-settings"><h3>Settings</h3>
+    <label>Gemini API key (sirf is phone mein save hoti hai)</label>
+    <input type="password" id="sKey" placeholder="AIza…" autocomplete="off">
+    <label>Model</label><input type="text" id="sModel">
+    <label><input type="checkbox" id="sVoice"> Jawab bol kar sunao</label>
+    <label>Voice language</label>
+    <select id="sLang"><option value="ur-PK">Urdu</option><option value="en-US">English</option><option value="hi-IN">Hindi</option></select>
+    <div class="bar"><button class="btn" id="reset">Reset everything</button></div></div>
+
+  <div class="card hub"><h3><span>Visual Hub</span><small id="hubSt">Ready</small></h3>
+    <p class="hint">Bol kar poochein, Zain samjhate hue yahan diagram banata hai.</p>
+    <div class="chips" id="chips"></div>
+    <div class="hubout" id="hubOut">What do you want to see?</div></div>
+
+  <div class="card hub"><h3><span>Gesture</span><small id="geSt">Off</small></h3>
+    <p class="hint">Haath camera ke saamne swipe karein: → mic, ← diagram saaf, ↑ dobara sunao, ↓ chup.</p>
+    <div class="bar"><button class="btn" id="geBtn">Enable camera</button>
+    <video id="cam" playsinline muted style="width:88px;height:66px;border-radius:10px;transform:scaleX(-1);display:none;background:#000"></video></div></div>
+
+  <div class="card chat" id="chat"></div>
+  <div class="bar"><button class="btn" id="mic" title="Speak">🎙</button><input type="text" id="inp" placeholder="Type to Zain…"><button class="btn" id="send">Send</button></div>
+  <p class="hint center" id="hint">Settings mein apni Gemini key daalein, phir baat shuru karein.</p>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const SKILLS=[["short","Short answers (1–3 sentences)"],["roman","Reply in Roman Urdu when I write Roman Urdu"],["explain","Explain like a friendly teacher"],["coach","Motivate me and ask good follow-up questions"]];
+const DEF={mem:[],skills:{short:true,roman:true},cName:"Zain",cDesc:"A warm, curious, playful AI friend.",voice:true,lang:"ur-PK",key:"",model:"gemini-flash-latest"};
+let S;
+function load(){try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem("zain")||"{}"))}catch(e){S=Object.assign({},DEF)}}
+function save(){try{localStorage.setItem("zain",JSON.stringify(S))}catch(e){}}
+load();
+let hist=[],busy=false,hubBusy=false;
+
+function setState(s){$("stage").className="card stage "+s;$("state").textContent=s}
+function renderMem(){const l=$("memList");l.textContent="";
+ if(!S.mem.length){l.innerHTML='<p class="hint">Abhi kuch yaad nahi. Zain khud bhi yaad rakhega.</p>';return}
+ S.mem.forEach((m,i)=>{const d=document.createElement("div");d.className="mem";const t=document.createElement("span");t.textContent=m;
+  const b=document.createElement("button");b.textContent="✕";b.onclick=()=>{S.mem.splice(i,1);save();renderMem()};d.append(t,b);l.append(d)})}
+function renderSkills(){const l=$("skillList");l.textContent="";
+ SKILLS.forEach(([k,t])=>{const lb=document.createElement("label");const c=document.createElement("input");c.type="checkbox";c.checked=!!S.skills[k];
+  c.onchange=()=>{S.skills[k]=c.checked;save()};lb.append(c,document.createTextNode(t));l.append(lb)})}
+function applyUI(){$("name").textContent=S.cName||"Zain";$("cName").value=S.cName;$("cDesc").value=S.cDesc;$("sVoice").checked=S.voice;$("sLang").value=S.lang;$("sKey").value=S.key;$("sModel").value=S.model;renderMem();renderSkills()}
+applyUI();
+
+function openPanel(t){document.querySelectorAll(".panel").forEach(x=>x.classList.remove("show"));document.querySelectorAll(".node").forEach(x=>x.classList.remove("on"));
+ if(t){$("p-"+t).classList.add("show");document.querySelector('.node[data-t="'+t+'"]').classList.add("on")}}
+document.querySelectorAll(".node").forEach(n=>n.onclick=()=>openPanel($("p-"+n.dataset.t).classList.contains("show")?null:n.dataset.t));
+if(!S.key)openPanel("settings");
+$("memAdd").onclick=()=>{const v=$("memIn").value.trim();if(v){S.mem.push(v);$("memIn").value="";save();renderMem()}};
+$("cName").oninput=()=>{S.cName=$("cName").value;$("name").textContent=S.cName||"Zain";save()};
+$("cDesc").oninput=()=>{S.cDesc=$("cDesc").value;save()};
+$("sKey").oninput=()=>{S.key=$("sKey").value.trim();save()};
+$("sModel").oninput=()=>{S.model=$("sModel").value.trim()||DEF.model;save()};
+$("sVoice").onchange=()=>{S.voice=$("sVoice").checked;save();if(!S.voice)try{speechSynthesis.cancel()}catch(e){}};
+$("sLang").onchange=()=>{S.lang=$("sLang").value;save()};
+$("reset").onclick=()=>{try{localStorage.removeItem("zain")}catch(e){}S=Object.assign({},DEF);hist=[];$("chat").textContent="";applyUI()};
+
+function add(role,text){const d=document.createElement("div");d.className="msg "+(role==="user"?"u":"a");
+ if(role!=="user"){const b=document.createElement("b");b.textContent=(S.cName||"Zain").toUpperCase();d.append(b)}
+ const s=document.createElement("span");s.textContent=text;d.append(s);$("chat").append(d);$("chat").scrollTop=1e9;return s}
+
+async function gem(contents,system){
+ if(!S.key)throw new Error("Pehle Settings mein Gemini key daalein.");
+ const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(S.model)+":generateContent?key="+encodeURIComponent(S.key),
+  {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents})});
+ const j=await r.json().catch(()=>({}));
+ if(!r.ok)throw new Error((j.error&&j.error.message)||("Error "+r.status));
+ const p=j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts;
+ return p?p.map(x=>x.text||"").join(""):""}
+
+function instructions(){
+ const sk=SKILLS.filter(([k])=>S.skills[k]).map(s=>"- "+s[1]).join("\n");
+ return "You are "+(S.cName||"Zain")+", a voice AI companion. Character: "+S.cDesc+"\nSkills:\n"+(sk||"- none")+
+ "\nWhat you remember about the user:\n"+(S.mem.length?S.mem.map(m=>"- "+m).join("\n"):"- nothing yet")+
+ "\nIf the user shares a lasting personal fact (name, goal, preference), add a final line exactly like: REMEMBER: <fact>. Replies are spoken aloud, so use plain text with no markdown or emoji. Reply in the language and script the user used.";}
+
+function speak(t){if(!S.voice||!("speechSynthesis" in window)){setState("idle");return}
+ try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;
+  const v=speechSynthesis.getVoices().find(v=>v.lang.replace("_","-").startsWith(S.lang.slice(0,2)));if(v)u.voice=v;
+  u.onstart=()=>setState("speaking");u.onend=u.onerror=()=>setState("idle");speechSynthesis.speak(u)}catch(e){setState("idle")}}
+
+const VIS=/draw|diagram|show me|show how|blueprint|look inside|visual|dikha|naksha|naqsha|how does|how do|kaise kaam|chart/i;
+async function ask(text){
+ text=(text||"").trim();if(busy||!text)return;
+ busy=true;add("user",text);$("inp").value="";setState("thinking");
+ if(VIS.test(text))visual(text);
+ hist.push({role:"user",parts:[{text}]});hist=hist.slice(-10);while(hist.length&&hist[0].role!=="user")hist.shift();
+ const out=add("assistant","…");
+ try{
+  let reply=await gem(hist,instructions());
+  const m=reply.match(/^\s*REMEMBER:\s*(.+)$/im);
+  if(m){const f=m[1].trim();if(f&&!S.mem.includes(f)){S.mem.push(f);save();renderMem()}reply=reply.replace(m[0],"").trim()}
+  out.textContent=reply||"…";hist.push({role:"model",parts:[{text:reply}]});speak(reply);
+ }catch(e){out.textContent="Masla: "+e.message;hist.pop();setState("idle")}
+ busy=false}
+
+async function visual(topic){
+ if(hubBusy)return;hubBusy=true;$("hubSt").textContent="Drawing…";
+ try{
+  const t=await gem([{role:"user",parts:[{text:"Draw a clear, simple educational diagram for: "+topic}]}],
+   "You output ONLY one <svg> element and nothing else. viewBox=\"0 0 400 300\", no background rect, no scripts, no images, no external links. Use stroke #35d0ff with stroke-width 2, accent colors #3dff9a and #ff4d6d, text fill #e8f4ff, font-family sans-serif, font-size 12. Labels are short (max 3 words) and must not overlap. Label the main parts and show flow with lines and small triangle arrowheads.");
+  const m=t.match(/<svg[\s\S]*<\/svg>/i);if(!m)throw new Error("nosvg");
+  let svg=m[0].replace(/<script[\s\S]*?<\/script>/gi,"").replace(/\son\w+="[^"]*"/gi,"");
+  if(!/xmlns=/.test(svg))svg=svg.replace("<svg",'<svg xmlns="http://www.w3.org/2000/svg"');
+  const im=new Image();im.alt=topic;im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  $("hubOut").textContent="";$("hubOut").append(im);$("hubSt").textContent="Ready";
+ }catch(e){$("hubSt").textContent="Diagram nahi ban saka, dobara try karein"}
+ hubBusy=false}
+["Draw a SpaceX Starship blueprint","Show how a black hole bends light","Look inside a fusion reactor","Show how the heart pumps blood"].forEach(t=>{
+ const b=document.createElement("button");b.className="chip";b.textContent=t;b.onclick=()=>ask(t);$("chips").append(b)});
+$("send").onclick=()=>ask($("inp").value);
+$("inp").onkeydown=e=>{if(e.key==="Enter")ask($("inp").value)};
+
+/* voice input */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null,recOn=false;
+$("mic").onclick=()=>{
+ if(!SR){$("hint").textContent="Is browser mein mic support nahi. Chrome use karein.";return}
+ try{speechSynthesis.cancel()}catch(e){}
+ if(recOn){rec.stop();return}
+ rec=new SR();rec.lang=S.lang;rec.interimResults=true;rec.continuous=false;let fin="";
+ rec.onstart=()=>{recOn=true;$("mic").classList.add("rec");setState("listening")};
+ rec.onresult=e=>{let t="";fin="";for(let i=0;i<e.results.length;i++){if(e.results[i].isFinal)fin+=e.results[i][0].transcript;else t+=e.results[i][0].transcript}$("inp").value=fin+t};
+ rec.onerror=e=>{$("hint").textContent="Mic error: "+e.error};
+ rec.onend=()=>{recOn=false;$("mic").classList.remove("rec");setState("idle");const v=$("inp").value.trim();if(v)ask(v)};
+ try{rec.start()}catch(e){}};
+
+/* gestures */
+const GE={on:false,stream:null,prev:null,tr:[],last:0,timer:0};
+const gcv=document.createElement("canvas");gcv.width=40;gcv.height=30;const gx=gcv.getContext("2d",{willReadFrequently:true});
+function gAct(n){const s=$("geSt");
+ if(n==="right"){s.textContent="→ mic";$("mic").click()}
+ else if(n==="left"){s.textContent="← clear";$("hubOut").textContent="What do you want to see?"}
+ else if(n==="up"){s.textContent="↑ replay";const a=[...hist].reverse().find(m=>m.role==="model");if(a)speak(a.parts[0].text)}
+ else{s.textContent="↓ stop";try{speechSynthesis.cancel()}catch(e){}setState("idle")}
+ setTimeout(()=>{if(GE.on)s.textContent="Watching"},1200)}
+function gEval(){const t=GE.tr;GE.tr=[];if(t.length<4)return;const a=t[0],b=t[t.length-1];
+ const dx=-(b.x-a.x),dy=b.y-a.y,nx=Math.abs(dx)/12,ny=Math.abs(dy)/9;
+ if(Math.max(nx,ny)<1||Date.now()-GE.last<1200)return;GE.last=Date.now();
+ gAct(nx>=ny?(dx>0?"right":"left"):(dy<0?"up":"down"))}
+function gTick(){const v=$("cam");if(!v.videoWidth)return;gx.drawImage(v,0,0,40,30);
+ const d=gx.getImageData(0,0,40,30).data,g=new Uint8Array(1200);let n=0,sx=0,sy=0;
+ for(let i=0;i<1200;i++){g[i]=(d[i*4]+d[i*4+1]+d[i*4+2])/3;if(GE.prev&&Math.abs(g[i]-GE.prev[i])>28){n++;sx+=i%40;sy+=Math.floor(i/40)}}
+ GE.prev=g;
+ if(n>40&&n<700){GE.tr.push({x:sx/n,y:sy/n});if(GE.tr.length>=12)gEval()}else if(GE.tr.length)gEval()}
+$("geBtn").onclick=async()=>{const v=$("cam");
+ if(GE.on){clearInterval(GE.timer);GE.stream.getTracks().forEach(t=>t.stop());GE.on=false;v.style.display="none";$("geBtn").textContent="Enable camera";$("geSt").textContent="Off";return}
+ try{GE.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:160,height:120}});
+  v.srcObject=GE.stream;v.style.display="block";await v.play();GE.on=true;GE.prev=null;GE.tr=[];
+  GE.timer=setInterval(gTick,100);$("geBtn").textContent="Disable camera";$("geSt").textContent="Watching"
+ }catch(e){$("geSt").textContent="Camera error: "+((e&&e.name)||"unknown")}};
+})();
+</script>
+</body>
+                                                  </html>
